@@ -40,6 +40,15 @@ namespace CQRS.POC.Domain.Entities
             };
         }
 
+        public void Update(string name, string description)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new DomainException("Il nome è obbligatorio.");
+            Name = name;
+            Description = description;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
         public void UpdatePrice(decimal newPrice)
         {
             if (newPrice < 0) throw new DomainException("Il prezzo non può essere negativo.");

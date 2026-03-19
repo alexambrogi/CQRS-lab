@@ -1,0 +1,299 @@
+openapi: 3.1.1
+info:
+  title: CQRS.POC.API | v1
+  version: 1.0.0
+servers:
+  - url: http://localhost:5244/
+paths:
+  /api/Products:
+    post:
+      tags:
+        - Products
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+          text/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+          application/*+json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+            text/json:
+              schema:
+                type: string
+                format: uuid
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+            text/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+    get:
+      tags:
+        - Products
+      parameters:
+        - name: page
+          in: query
+          schema:
+            pattern: ^-?(?:0|[1-9]\d*)$
+            type:
+              - integer
+              - string
+            format: int32
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            pattern: ^-?(?:0|[1-9]\d*)$
+            type:
+              - integer
+              - string
+            format: int32
+            default: 10
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedResultOfProductDTO"
+            text/json:
+              schema:
+                $ref: "#/components/schemas/PagedResultOfProductDTO"
+  /api/Products/{id}:
+    get:
+      tags:
+        - Products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDTO"
+            text/json:
+              schema:
+                $ref: "#/components/schemas/ProductDTO"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+            text/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+    put:
+      tags:
+        - Products
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequest"
+          text/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequest"
+          application/*+json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequest"
+        required: true
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+            text/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+            text/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+components:
+  schemas:
+    CreateProductRequest:
+      required:
+        - name
+        - description
+        - price
+        - initialStock
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          pattern: ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+          type:
+            - number
+            - string
+          format: double
+        initialStock:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - integer
+            - string
+          format: int32
+    PagedResultOfProductDTO:
+      required:
+        - items
+        - page
+        - pageSize
+        - totalCount
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductDTO"
+        page:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - integer
+            - string
+          format: int32
+        pageSize:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - integer
+            - string
+          format: int32
+        totalCount:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - integer
+            - string
+          format: int32
+        totalPages:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - integer
+            - string
+          format: int32
+        hasNextPage:
+          type: boolean
+        hasPreviousPage:
+          type: boolean
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type:
+            - "null"
+            - string
+        title:
+          type:
+            - "null"
+            - string
+        status:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - "null"
+            - integer
+            - string
+          format: int32
+        detail:
+          type:
+            - "null"
+            - string
+        instance:
+          type:
+            - "null"
+            - string
+    ProductDTO:
+      required:
+        - id
+        - name
+        - description
+        - price
+        - stock
+        - isActive
+        - createdAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          pattern: ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+          type:
+            - number
+            - string
+          format: double
+        stock:
+          pattern: ^-?(?:0|[1-9]\d*)$
+          type:
+            - integer
+            - string
+          format: int32
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    UpdateProductRequest:
+      required:
+        - name
+        - description
+        - price
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          pattern: ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+          type:
+            - number
+            - string
+          format: double
+tags:
+  - name: Products

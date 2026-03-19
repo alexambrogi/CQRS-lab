@@ -1,7 +1,35 @@
 @CQRS.POC.API_HostAddress = http://localhost:5244
 @contentType = application/json
+@productId = <sostituisci-con-un-guid-valido>
 
 
+
+### GET ALL (paginato)
+
+GET {{CQRS.POC.API_HostAddress}}/api/products?page=1&pageSize=10
+Accept: application/json
+
+###
+
+### GET ALL con ricerca
+
+GET {{CQRS.POC.API_HostAddress}}/api/products?page=1&pageSize=10&search=tshirt
+Accept: application/json
+
+###
+
+### PUT UPDATE PRODUCT
+
+PUT {{CQRS.POC.API_HostAddress}}/api/products/{{productId}}
+Accept: application/json
+Content-Type: {{contentType}}
+{
+  "Name": "tshirt aggiornata",
+  "Description": "descrizione aggiornata",
+  "Price": 199
+}
+
+###
 
 ### POST CON DATI CORRETTI
 

@@ -2,12 +2,14 @@
 using Microsoft.AspNetCore.Mvc;
 using CQRS.POC.Application.Products.Commands;
 using CQRS.POC.Application.Products.Queries;
+using CQRS.POC.API.Requests;
+using CQRS.POC.Application.Common.Models;
 
-namespace CqrsPoc.Api.Controllers;
+namespace CQRS.POC.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-//public class ProductsController(IMediator mediator) : ControllerBase
+//public class ProductsController(IMediator mediator) : ControllerBase => // C# 12 syntax for constructor injection
 public class ProductsController : ControllerBase
 {
     private readonly IMediator mediator;
@@ -36,6 +38,8 @@ public class ProductsController : ControllerBase
 
     // placeholder — lo implementiamo nel prossimo step con le Query
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ProductDTO), 200)]
+    [ProducesResponseType(404)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct = default)
     {
         var result = await mediator.Send(new GetProductByIdQuery(id), ct);
@@ -44,13 +48,26 @@ public class ProductsController : ControllerBase
     }
 
 
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<ProductDTO>), 200)]
     public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, CancellationToken ct = default)
     {
         var result = await mediator.Send(new GetProductsPagedQuery(page, pageSize, search), ct);
 
         return Ok(result);
     }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(422)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request, CancellationToken ct)
+    {
+        var command = new UpdateProductCommand(id, request.Name, request.Description, request.Price);
+
+        await mediator.Send(command, ct);
+
+        return NoContent();
+    }
 }
 
-// DTO di input — separato dal Command per disaccoppiare API da Application
-public record CreateProductRequest(string Name, string Description, decimal Price, int InitialStock);
