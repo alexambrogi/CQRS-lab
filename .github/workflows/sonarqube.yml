@@ -38,9 +38,12 @@ jobs:
         run: |
           dotnet sonarscanner begin \
             /k:"cqrs-lab" \
+            /n:"cqrs Lab" \
+            /v:"1.0" \
             /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
             /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+            /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml \
+            /d:sonar.exclusions="**/bin/**,**/obj/**"
 
       - name: Build
         run: dotnet build --no-incremental
