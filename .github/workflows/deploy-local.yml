@@ -1,0 +1,62 @@
+name: Deploy to local Docker Desktop
+
+on:
+  workflow_run:
+    workflows:
+      - "Docker Build & Publish"
+    types:
+      - completed
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Pull & run container locally
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}:latest
+      CONTAINER: cqrs-api
+      HOST_PORT: 5244
+      CONTAINER_PORT: 8080
+      VOLUME: cqrs-poc-data
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        run: docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest image
+        run: docker pull ${{ env.IMAGE }}
+
+      - name: Stop and remove existing container (if running)
+        run: |
+          docker stop ${{ env.CONTAINER }} 2>$null; true
+          docker rm   ${{ env.CONTAINER }} 2>$null; true
+
+      - name: Run new container
+        run: |
+          docker run -d `
+            --name ${{ env.CONTAINER }} `
+            -p ${{ env.HOST_PORT }}:${{ env.CONTAINER_PORT }} `
+            -v ${{ env.VOLUME }}:/app `
+            --restart unless-stopped `
+            ${{ env.IMAGE }}
+
+      - name: Health check
+        run: |
+          $max = 15
+          $i = 0
+          do {
+            Start-Sleep -Seconds 2
+            $i++
+            try {
+              $r = Invoke-WebRequest -Uri "http://localhost:${{ env.HOST_PORT }}/scalar/v1" -UseBasicParsing -TimeoutSec 3
+              if ($r.StatusCode -eq 200) {
+                Write-Host "Container raggiungibile su http://localhost:${{ env.HOST_PORT }}"
+                exit 0
+              }
+            } catch {}
+          } while ($i -lt $max)
+          Write-Error "Health check fallito dopo $($max * 2) secondi."
+          exit 1
