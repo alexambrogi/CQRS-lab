@@ -1,6 +1,5 @@
 name: SonarQube Analysis 
 
-
 on:
   push:
     branches:
