@@ -101,6 +101,87 @@ dotnet run --project src/api
 
 > Non sono necessarie migrazioni: il database viene creato automaticamente all'avvio tramite `EnsureCreated()`.
 
+---
+
+## Security — SAST e DAST in CI/CD
+
+La pipeline di sicurezza è composta da due stage sequenziali: prima SAST con SonarQube, poi DAST con OWASP ZAP. Il DAST parte solo se il SAST ha avuto esito positivo (`workflow_run` con `conclusion == 'success'`).
+
+### SAST — SonarQube (self-hosted via tunnel)
+
+SonarQube gira in locale come container Docker. Poiché GitHub Actions non può raggiungere direttamente un'istanza locale, si espone la porta `9000` del container tramite un tunnel pubblico (es. **ngrok** o **Cloudflare Tunnel**), il cui URL viene salvato come secret `SONAR_HOST_URL`.
+
+```
+GitHub Actions runner
+       │
+       │  HTTPS (SONAR_HOST_URL)
+       ▼
+  Tunnel pubblico  ──►  localhost:9000  ──►  Container SonarQube
+```
+
+**Step eseguiti dalla workflow `sonarqube.yml`:**
+
+1. Checkout del repository (full history con `fetch-depth: 0`)
+2. Setup .NET 10 + installazione di `dotnet-sonarscanner` e `dotnet-coverage`
+3. `sonarscanner begin` — apre la sessione di analisi con chiave progetto `cqrs-lab`
+4. `dotnet build` — compila il codice sorgente
+5. `dotnet-coverage collect dotnet test` — esegue i test raccogliendo la coverage in formato XML
+6. `sonarscanner end` — invia i risultati a SonarQube
+
+**Secrets richiesti:**
+
+| Secret | Valore |
+|--------|--------|
+| `SONAR_TOKEN` | Token di autenticazione generato da SonarQube |
+| `SONAR_HOST_URL` | URL pubblico del tunnel che punta a `localhost:9000` |
+
+---
+
+### DAST — OWASP ZAP (API esposta via Cloudflare Tunnel)
+
+Il DAST viene eseguito da GitHub Actions puntando all'API ASP.NET Core in esecuzione in locale sulla porta `5244` (HTTP). Per renderla raggiungibile dall'esterno si usa **cloudflared** (`cloudflare tunnel`), che crea un tunnel HTTPS pubblico verso `localhost:5244`. L'URL generato viene salvato come secret `APP_URL`.
+
+```
+GitHub Actions runner
+       │
+       │  HTTPS (APP_URL)
+       ▼
+  Cloudflare Tunnel  ──►  localhost:5244  ──►  ASP.NET Core API
+```
+
+**Step eseguiti dalla workflow `dast.yml`:**
+
+1. Checkout del repository
+2. Fix permessi cartella di lavoro per OWASP ZAP
+3. **ZAP Baseline Scan** sull'endpoint `$APP_URL/scalar/v1` con regole custom in `.zap/rules.tsv`
+4. Upload del report (`report_html.html`, `report_json.json`) come artifact con retention 30 giorni
+
+**Secrets richiesti:**
+
+| Secret | Valore |
+|--------|--------|
+| `APP_URL` | URL pubblico del tunnel Cloudflare che punta a `localhost:5244` |
+
+---
+
+### Esecuzione locale dei tunnel
+
+Prima di fare push su `master` o `develop`, assicurarsi che entrambi i tunnel siano attivi:
+
+```bash
+# Tunnel SonarQube (porta 9000 del container Docker)
+# Con ngrok:
+ngrok http 9000
+
+# Con cloudflared:
+cloudflared tunnel --url http://localhost:9000
+
+# Tunnel API ASP.NET Core (porta 5244)
+cloudflared.exe tunnel --url http://localhost:5244
+```
+
+Aggiornare i secrets GitHub (`SONAR_HOST_URL` e `APP_URL`) con i nuovi URL ogni volta che i tunnel vengono ricreati, poiché gli URL cambiano ad ogni avvio (a meno di usare tunnel named con dominio fisso).
+
 ## Struttura della soluzione
 
 ```
