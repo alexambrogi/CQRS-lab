@@ -1,0 +1,11 @@
+# ZAP rule overrides
+# Format: rule_id	WARN|IGNORE|FAIL	description
+#
+# 10016 = Web Browser XSS Protection Not Enabled       -> not needed for API-only
+# 10017 = Cross-Domain JavaScript Source File Inclusion -> not applicable
+# 10036 = Server Leaks Version Information              -> WARN instead of FAIL in dev
+# 10096 = Timestamp Disclosure                          -> low signal for internal APIs
+10016	IGNORE	Web Browser XSS Protection Not Enabled
+10017	IGNORE	Cross-Domain JavaScript Source File Inclusion
+10036	WARN	Server Leaks Version Information
+10096	WARN	Timestamp Disclosure
