@@ -1,6 +1,6 @@
 @CQRS.POC.API_HostAddress = http://localhost:5244
 @contentType = application/json
-@productId = <sostituisci-con-un-guid-valido>
+
 
 
 
